@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Atendimento RD Play</title>
+  <style>
+    body {
+      background-image: url('https://i.postimg.cc/Y2dwjs7d/imagem-fundo-whatsapp-2.jpg');
+      background-size: cover;
+      background-repeat: repeat;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.5s ease;
+    }
+    .header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #ffffff;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #ccc;
+      z-index: 1000;
+      box-sizing: border-box;
+    }
+    .header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    .header .name {
+      flex-grow: 1;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .chat-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 70px 10px 90px;
+      overflow-y: auto;
+      height: calc(100vh - 160px);
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      max-width: 80%;
+      margin: 10px;
+      padding: 10px 15px;
+      word-wrap: break-word;
+      animation: slideIn 0.3s ease;
+      border-radius: 10px;
+      line-height: 1.4;
+    }
+    .bot {
+      background: #fff;
+      align-self: flex-start;
+      border: 1px solid #ddd;
+    }
+    .user {
+      background: #dcf8c6;
+      align-self: flex-end;
+    }
+    .typing {
+      font-style: italic;
+      color: gray;
+      margin: 5px 10px;
+    }
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin: 10px;
+      gap: 8px;
+    }
+    .button, .buttons a.button {
+      background: #075E54;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      border: none;
+      text-align: left;
+    }
+    .input-footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 600px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      border-top: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    .input-box {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border-radius: 25px;
+      padding: 8px 12px;
+      flex-grow: 1;
+      margin-right: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .input-box input {
+      flex-grow: 1;
+      border: none;
+      outline: none;
+      font-size: 15px;
+    }
+    .send-button {
+      background-color: #25D366;
+      border-radius: 50%;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .send-button img {
+      width: 24px;
+      height: 24px;
+    }
+    /* Estilos para a função de copiar PIX */
+    .pix-container {
+        background-color: #f0f2f5;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 10px;
+        border: 1px solid #e0e0e0;
+    }
+    .pix-key {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        word-break: break-all;
+        color: #333;
+    }
+    .copy-button {
+        background-color: #25D366;
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 5px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-top: 8px;
+        display: block;
+        transition: background-color 0.2s;
+    }
+    .copy-button:hover {
+        background-color: #128C7E;
+    }
+    .copy-button.copied {
+        background-color: #075E54;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app-container">
+    <div class="header">
+      <img src="https://i.postimg.cc/5t9mvyqz/DOCTYPE-html-html-lang-pt-BR-head-meta-charset-UTF-8-meta-name-viewport-content-width-device-width.jpg" alt="Perfil">
+      <div class="name">RD - Atendimento</div>
+    </div>
+    <div class="chat-container" id="chat"></div>
+    <div class="input-footer">
+      <div class="input-box">
+        <input id="userInput" type="text" placeholder="Digite seu nome" />
+      </div>
+      <div class="send-button" id="sendButton">
+        <img src="https://img.icons8.com/material-rounded/24/ffffff/filled-sent.png" alt="Enviar">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let etapa = 0;
+    let userName = '';
+    let initialPlan = {};
+    let finalPlan = {};
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+
+    const SYSTEM_PROMPT = `
+        **PERSONA:** Você é o RD, um especialista em entretenimento da RD Entretenimento. Aja como um especialista humano atendendo pelo WhatsApp. Sua comunicação é natural, direta, clara e objetiva, transmitindo autoridade e confiança. O objetivo é fazer o cliente sentir que está falando com um especialista de verdade, que entende do assunto e está ali para ajudar.
+        **OBJETIVO:** Guiar o cliente pelo funil de vendas de forma consultiva, esclarecendo dúvidas e levando-o a ativar um plano.
+        **INFORMAÇÕES DO SERVIÇO (use apenas quando perguntado):**
+        * **Planos:** Teste (R$5/7dias), Padrão (R$10/mês), Premium (R$20/mês).
+        * **Combos:** Trimestral (R$75), Semestral (R$300), Anual (R$900).
+        * **Compatibilidade:** Funciona em praticamente tudo (Smart TV, Celular, TV Box, PC).
+        * **Pagamento:** Apenas via PIX. Opções: 1) Chave 91991951703 para Gabriel Brandão (Mercado Pago). 2) Chave 91980939843 para Amanda Gabrielle (Mercado Pago).
+        * **Conteúdo:** +30k no básico, +60k no premium. Inclui canais, filmes, séries, esportes, infantil e adulto (com opção de bloqueio).
+        **DIRETRIZES DE COMUNICAÇÃO:**
+        1.  **Seja Profissional, mas Humano:** Evite gírias e frases robóticas. Use saudações e despedidas cordiais.
+        2.  **Seja Claro e Direto:** Vá direto ao ponto, sem rodeios, de forma que o cliente entenda perfeitamente.
+        3.  **Use o Nome do Cliente:** Chame o cliente pelo nome para criar uma conversa personalizada e respeitosa.
+        4.  **Responda a Dúvidas com Autoridade:** Demonstre conhecimento. Ex: "Entendo sua dúvida sobre a qualidade. A melhor forma de comprovar a estabilidade do nosso serviço é através do plano de teste. Ele foi criado justamente para que você possa avaliar tudo na prática, com um investimento mínimo." ou "Sim, nosso sistema é compatível com a grande maioria dos aparelhos. Me informe o modelo da sua TV que eu já te oriento sobre o melhor aplicativo."
+        5.  **Foco na Solução:** Sempre termine as interações guiando para o próximo passo lógico (apresentar os planos, confirmar o aparelho, ativar o serviço).
+        **IMPORTANTE:** Responda sempre em Português do Brasil.
+    `;
+
+    // --- Funções de UI ---
+    function addMessage(text, sender = 'bot', isHtml = false) {
+      const message = document.createElement('div');
+      message.className = `message ${sender}`;
+      if (isHtml) {
+        message.innerHTML = text;
+      } else {
+        message.innerText = text;
+      }
+      chat.appendChild(message);
+      scrollToBottom();
+    }
+
+    function showTyping(callback, delay = 1500) {
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      typing.innerText = 'Digitando...';
+      chat.appendChild(typing);
+      scrollToBottom();
+      setTimeout(() => {
+        if (chat.contains(typing)) chat.removeChild(typing);
+        callback();
+      }, delay);
+    }
+
+    function createButtons(options) {
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = 'buttons';
+      options.forEach(option => {
+        const button = document.createElement('button');
+        button.className = 'button';
+        button.innerHTML = option.text;
+        button.onclick = () => {
+          addMessage(option.text, 'user', true);
+          document.querySelectorAll('.buttons').forEach(b => b.remove());
+          setTimeout(() => botResponse(option.value), 500);
+        };
+        buttonContainer.appendChild(button);
+      });
+      chat.appendChild(buttonContainer);
+      scrollToBottom();
+    }
+    
+    function scrollToBottom() {
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    // --- FUNÇÃO PARA COPIAR PIX ---
+    function copyToClipboard(text, buttonElement) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            buttonElement.innerText = 'Copiado!';
+            buttonElement.classList.add('copied');
+            setTimeout(() => {
+                buttonElement.innerText = 'Copiar Chave';
+                buttonElement.classList.remove('copied');
+            }, 2000);
+        } catch (err) {
+            console.error('Falha ao copiar texto: ', err);
+        }
+        document.body.removeChild(textArea);
+    }
+
+    // --- Lógica da API Gemini ---
+    async function callGeminiAPI(prompt, loadingMessage) {
+        const loadingElement = document.createElement('div');
+        loadingElement.className = 'message bot';
+        loadingElement.innerText = loadingMessage;
+        chat.appendChild(loadingElement);
+        scrollToBottom();
+        const finalPrompt = `${SYSTEM_PROMPT}\n\nO nome do cliente é ${userName}. A tarefa ou pergunta dele é a seguinte: "${prompt}"`;
+        let chatHistory = [{ role: "user", parts: [{ text: finalPrompt }] }];
+        const payload = { contents: chatHistory };
+        const apiKey = "AIzaSyDxG9n2_aTF0RkmEawSKyqTg3t-G1PjNbU";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            loadingElement.remove();
+            if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                return "Peço desculpas, não consegui processar a informação. Poderia perguntar de outra forma?";
+            }
+        } catch (error) {
+            loadingElement.remove();
+            console.error("Erro ao chamar a API Gemini:", error);
+            return "Houve uma falha em nossa comunicação interna. Por favor, tente novamente.";
+        }
+    }
+
+
+    // --- Lógica de Redirecionamento e Página de Transição ---
+    function startRedirectionAndTracking() {
+        const appContainer = document.getElementById('app-container');
+        appContainer.innerHTML = `
+            <style>
+                body { background: #f0f2f5; color: #4b4f56; font-family: Arial, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; margin: 0; padding: 20px; box-sizing: border-box;}
+                .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #075E54; animation: spin 1s ease infinite; margin-bottom: 20px; }
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                h2 { font-size: 18px; margin-bottom: 10px; }
+                p { font-size: 14px; color: #888; }
+            </style>
+            <div class="spinner"></div>
+            <h2>Conectando ao suporte...</h2>
+            <p>Aguarde um instante, estamos te redirecionando para o WhatsApp.</p>
+        `;
+        
+        const purchaseData = {
+            value: finalPlan.value,
+            currency: 'BRL',
+            planName: finalPlan.name,
+            userName: userName
+        };
+        
+        const testEventCode = "TEST60493";
+
+        console.log("--- SIMULAÇÃO DE CHAMADA À API DE CONVERSÃO COM CÓDIGO DE TESTE ---");
+        console.log("Dados que seriam enviados para o servidor:", purchaseData);
+        console.log("Código de Teste:", testEventCode);
+        console.log("--- FIM DA SIMULAÇÃO ---");
+
+
+        setTimeout(() => {
+            window.open(`https://api.whatsapp.com/send?phone=5591980954206&text=Ol%C3%A1%2C+realizei+o+pagamento+do+${encodeURIComponent(finalPlan.name)}.+Segue+o+comprovante.`, "_blank");
+        }, 4000);
+    }
+    
+    // --- Fluxo Principal do Chatbot ---
+    async function botResponse(userText) {
+      showTyping(async () => {
+        switch (etapa) {
+          case 0:
+            addMessage("Olá, tudo bem? Meu nome é RD, sou especialista de produto da RD Entretenimento.", 'bot');
+            setTimeout(() => addMessage("Para começarmos, como posso te chamar?", 'bot'), 1000);
+            etapa = 1;
+            break;
+
+          case 1:
+            addMessage(`É um prazer atendê-lo, ${userName}.`, 'bot');
+            setTimeout(() => {
+              addMessage(`Me diga, ${userName}, você está satisfeito com seu serviço atual de TV ou streaming?`, 'bot');
+              setTimeout(() => {
+                addMessage("Muitos de nossos clientes buscavam uma alternativa com mais conteúdo e sem os altos custos dos serviços tradicionais.", 'bot');
+                setTimeout(() => {
+                  addMessage("Gostaria que eu explicasse como nossa solução funciona?", 'bot');
+                  createButtons([
+                    { text: '✅ Sim, por favor', value: 'show_plans' },
+                    { text: '🤔 O que é exatamente a solução?', value: 'doubts_early' }
+                  ]);
+                }, 1000);
+              }, 1500);
+            }, 1500); 
+            etapa = 2;
+            break;
+
+          case 2:
+            if (userText === 'doubts_early') {
+                addMessage(`Nossa solução é um serviço de streaming completo, ${userName}. Liberamos o acesso a todo o conteúdo de canais, filmes e séries diretamente pela sua internet, sem a necessidade de aparelhos ou antenas.`, 'bot');
+            }
+            addMessage("Perfeito. Nós oferecemos três opções de planos para atender a diferentes perfis:", 'bot', true);
+            setTimeout(() => {
+                addMessage("🎟️ <b>Plano Teste (R$ 5)</b>: Ideal para você conhecer nossa plataforma por 7 dias, com acesso total.", 'bot', true);
+                 setTimeout(() => {
+                    addMessage("💰 <b>Plano Padrão (R$ 10/mês)</b>: Nosso plano mais popular, com todo o conteúdo e liberdade para cancelar quando quiser.", 'bot', true);
+                    setTimeout(() => {
+                        addMessage("👑 <b>Plano Premium (R$ 20/mês)</b>: A experiência completa, com mais de 60.000 conteúdos e máxima performance de sinal.", 'bot', true);
+                        setTimeout(() => {
+                            addMessage("Qual dessas opções se encaixa melhor no que você procura?", 'bot');
+                            createButtons([
+                                { text: '⭐ Gostaria de testar primeiro', value: 'plan_teste' },
+                                { text: '🔥 O Padrão me parece bom', value: 'plan_padrao' },
+                                { text: '👑 Quero a experiência Premium', value: 'plan_premium' }
+                            ]);
+                        }, 1000);
+                    }, 1500);
+                }, 1500);
+            }, 1000);
+            etapa = 3;
+            break;
+
+          case 3:
+            if (userText === 'plan_teste') initialPlan = { name: 'Plano Teste', value: '5.00' };
+            if (userText === 'plan_padrao') initialPlan = { name: 'Plano Mensal Padrão', value: '10.00' };
+            if (userText === 'plan_premium') initialPlan = { name: 'Plano Premium', value: '20.00' };
+            addMessage(`Ótima escolha, ${userName}. Para que eu possa te orientar corretamente, em qual aparelho você pretende assistir? (Ex: Smart TV, celular, computador...)`, 'bot');
+            etapa = 4;
+            break;
+
+          case 4:
+            const deviceType = userText;
+            const promptSetup = `O cliente ${userName} vai usar o aparelho "${deviceType}". Informe para ele, de forma clara e profissional, qual o aplicativo mais indicado (baseado nas suas informações de compatibilidade) e reforce que, após o pagamento, nossa equipe de suporte o auxiliará em todo o processo de instalação.`;
+            const setupInstructions = await callGeminiAPI(promptSetup, `Verificando a melhor opção para você...`);
+            addMessage(setupInstructions, 'bot');
+            setTimeout(() => {
+                addMessage(`Ficou claro, ${userName}? Se tiver qualquer outra dúvida, é só perguntar. Caso contrário, já podemos seguir para a ativação.`, 'bot');
+                createButtons([
+                    { text: '🚀 Sim, vamos ativar', value: 'activate_now' },
+                    { text: '🤔 Tenho uma última dúvida', value: 'have_a_doubt' }
+                ]);
+            }, 1000);
+            etapa = 5;
+            break;
+            
+          case 5:
+            if (userText === 'activate_now') {
+                etapa = 6;
+                botResponse();
+                return;
+            }
+            if (userText === 'have_a_doubt') {
+                addMessage(`Claro, pode perguntar. Estou aqui para ajudar.`, 'bot');
+                etapa = 5.5;
+                return;
+            }
+            break;
+
+          case 6:
+            if (userText === 'look_around') {
+                addMessage(`Compreendo, ${userName}. Fique à vontade. Se decidir prosseguir, estarei à disposição para ajudar.`, 'bot');
+                return;
+            }
+            finalPlan = initialPlan;
+            if (initialPlan.name === 'Plano Teste') {
+                etapa = 8;
+                botResponse();
+                return;
+            }
+            addMessage(`Excelente! Antes de irmos para o pagamento, gostaria de saber se tem interesse em conhecer nossos pacotes de longa duração? Eles oferecem mais economia e comodidade.`, 'bot');
+            setTimeout(() => {
+                createButtons([
+                    { text: '✅ Sim, tenho interesse', value: 'show_combos' },
+                    { text: `❌ Não, obrigado. Prefiro manter o ${initialPlan.name}`, value: 'stay_initial' }
+                ]);
+            }, 1500);
+            etapa = 7;
+            break;
+
+          case 7:
+            if (userText === 'stay_initial') {
+                etapa = 8;
+                botResponse();
+                return;
+            }
+            addMessage("Ótimo. Nossos pacotes são:", 'bot', true);
+             setTimeout(() => {
+                addMessage("📦 <b>Trimestral (R$ 75)</b>: 3 meses de acesso.", 'bot', true);
+                setTimeout(() => {
+                    addMessage("🔥 <b>Semestral (R$ 300)</b>: 6 meses de acesso.", 'bot', true);
+                     setTimeout(() => {
+                        addMessage("👑 <b>Anual (R$ 900)</b>: 1 ano completo com suporte VIP.", 'bot', true);
+                        setTimeout(() => {
+                            addMessage("Algum destes pacotes é mais vantajoso para você?", 'bot');
+                            createButtons([
+                                { text: '✅ Sim, o Trimestral', value: 'combo_3' },
+                                { text: '💥 Sim, o Semestral', value: 'combo_6' },
+                                { text: '👑 Sim, o Anual', value: 'combo_12' },
+                                { text: `❌ Vou manter o ${initialPlan.name}`, value: 'stay_initial' }
+                            ]);
+                        }, 1000);
+                    }, 1500);
+                }, 1500);
+            }, 1000);
+            etapa = 8;
+            break;
+
+          case 8:
+            if (userText && userText.startsWith('combo')) {
+                if (userText === 'combo_3') finalPlan = { name: 'Combo Trimestral', value: '75.00' };
+                if (userText === 'combo_6') finalPlan = { name: 'Combo Semestral', value: '300.00' };
+                if (userText === 'combo_12') finalPlan = { name: 'Combo Anual', value: '900.00' };
+            } else {
+                finalPlan = initialPlan;
+            }
+            addMessage(`Perfeito, ${userName}. Para ativar seu <b>${finalPlan.name}</b> no valor de <b>R$ ${finalPlan.value.replace('.',',')}</b>, o pagamento é via Pix.`, 'bot', true);
+            setTimeout(() => {
+                const pixMessage = `
+                    <p>Você pode utilizar uma das chaves abaixo:</p>
+                    <div class="pix-container">
+                        <b>Nome:</b> Gabriel Brandão<br>
+                        <b>Banco:</b> Mercado Pago<br>
+                        <b>Chave Pix (Celular):</b><br>
+                        <span class="pix-key">91991951703</span>
+                        <button class="copy-button" onclick="copyToClipboard('91991951703', this)">Copiar Chave</button>
+                    </div>
+                    <div class="pix-container">
+                        <b>Nome:</b> Amanda Gabrielle<br>
+                        <b>Banco:</b> Mercado Pago<br>
+                        <b>Chave Pix (Celular):</b><br>
+                        <span class="pix-key">91980939843</span>
+                        <button class="copy-button" onclick="copyToClipboard('91980939843', this)">Copiar Chave</button>
+                    </div>
+                `;
+                addMessage(pixMessage, 'bot', true);
+                setTimeout(() => {
+                    addMessage("Assim que fizer o pagamento, por favor, clique no botão abaixo para nos enviar o comprovante e falar com nosso suporte.", 'bot');
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'buttons';
+                    const linkButton = document.createElement('button');
+                    linkButton.className = 'button';
+                    linkButton.innerHTML = '📤 Enviar Comprovante';
+                    linkButton.onclick = startRedirectionAndTracking;
+                    buttonContainer.appendChild(linkButton);
+                    chat.appendChild(buttonContainer);
+                    scrollToBottom();
+                }, 1500);
+            }, 1500);
+            etapa = 9;
+            break;
+        }
+      });
+    }
+
+    // --- Event Listeners ---
+    async function handleUserInput() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage(text, 'user');
+      input.value = '';
+
+      if (etapa === 1) {
+        userName = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        input.placeholder = "Digite sua mensagem";
+        botResponse(); 
+      } else if (etapa === 5.5) {
+        const doubtQuestion = text;
+        const promptDoubt = `Responda a seguinte dúvida do cliente: "${doubtQuestion}"`;
+        const doubtAnswer = await callGeminiAPI(promptDoubt, "Consultando informação...");
+        addMessage(doubtAnswer, 'bot');
+        setTimeout(() => {
+            addMessage(`Esclarecido? Podemos prosseguir com a ativação do seu plano, ${userName}?`, 'bot');
+            createButtons([
+                { text: '🚀 Sim, vamos ativar', value: 'activate_now' },
+                { text: '🤔 Tenho outra dúvida', value: 'have_a_doubt' }
+            ]);
+            etapa = 5;
+        }, 1500);
+      } else {
+        botResponse(text);
+      }
+    }
+
+    sendButton.addEventListener('click', handleUserInput);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleUserInput();
+    });
+
+    // Inicia a conversa
+    window.onload = () => botResponse();
+  </script>
+</body>
+</html>
